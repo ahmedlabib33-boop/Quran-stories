@@ -1,0 +1,64 @@
+{
+  "batch": "33_to_37",
+  "excel_rows": [
+    34,
+    35,
+    36,
+    37,
+    38
+  ],
+  "stories": [
+    {
+      "file": "033-أصحاب الجنة",
+      "excel_no": 34,
+      "title": "أصحاب الجنة",
+      "locations": "القلم: من الآية 17 إلى الآية 33",
+      "sources": [
+        "https://www.islamweb.net/ar/library/content/210/1132/"
+      ]
+    },
+    {
+      "file": "034-السامري",
+      "excel_no": 35,
+      "title": "السامري",
+      "locations": "البقرة: 51-54 | الأعراف: 148-152 | طه: 85-97",
+      "sources": [
+        "https://www.islamweb.net/ar/library/content/210/721/",
+        "https://www.islamweb.net/ar/library/content/210/454/"
+      ]
+    },
+    {
+      "file": "035-أصحاب القرية",
+      "excel_no": 36,
+      "title": "أصحاب القرية",
+      "locations": "يس: من الآية 13 إلى الآية 29",
+      "sources": [
+        "https://www.islamweb.net/ar/library/content/210/953/"
+      ]
+    },
+    {
+      "file": "036-تبع",
+      "excel_no": 37,
+      "title": "تُبَّع",
+      "locations": "الدخان: الآية 37 | ق: الآية 14",
+      "sources": [
+        "https://www.islamweb.net/ar/library/content/210/1026/",
+        "https://www.islamweb.net/ar/library/content/210/1060/"
+      ]
+    },
+    {
+      "file": "037-بداية الخلق",
+      "excel_no": 38,
+      "title": "بداية الخلق",
+      "locations": "الحجر: 26-29 | السجدة: 7-9 | ص: 71-72",
+      "sources": [
+        "https://www.islamweb.net/ar/library/content/210/653/",
+        "https://www.islamweb.net/ar/library/content/210/910/",
+        "https://www.islamweb.net/ar/library/content/210/970/"
+      ]
+    }
+  ],
+  "quran_text_source": "/usr/share/texlive/texmf-dist/tex/latex/quran/qurantext-simple.def",
+  "quran_verses_loaded": 6236,
+  "iterations": 2
+}

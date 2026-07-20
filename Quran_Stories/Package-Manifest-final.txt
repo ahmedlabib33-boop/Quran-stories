@@ -1,0 +1,14 @@
+QURAN STORIES — FINAL REMAINING BATCH (33 TO 37)
+Stories: 5
+Story PDF pages: 30
+Total PDF pages including quality summary: 32
+Iterative review cycles completed: 2
+Visual QA: PASS
+
+033-أصحاب الجنة | Excel row 34 | القلم 17-33 | 6 PDF pages | QA 99.3%
+034-السامري | Excel row 35 | البقرة 51-54؛ الأعراف 148-152؛ طه 85-97 | 7 PDF pages | QA 99.0%
+035-أصحاب القرية | Excel row 36 | يس 13-29 | 6 PDF pages | QA 99.1%
+036-تبع | Excel row 37 | الدخان 37؛ ق 14 | 5 PDF pages | QA 98.8%
+037-بداية الخلق | Excel row 38 | الحجر 26-29؛ السجدة 7-9؛ ص 71-72 | 6 PDF pages | QA 99.0%
+
+See 000-Final-QA-Report.json and 000-Quality-Control-Summary.pdf for details.

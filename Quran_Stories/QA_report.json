@@ -1,0 +1,105 @@
+{
+  "batch": "23_to_32",
+  "total_pdf_pages": 65,
+  "files": [
+    {
+      "file": "000-Quality-Control-Summary",
+      "docx_exists": true,
+      "docx_size": 40110,
+      "pdf_exists": true,
+      "pdf_size": 113525,
+      "pdf_pages": 2,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "023-زكريا",
+      "docx_exists": true,
+      "docx_size": 46718,
+      "pdf_exists": true,
+      "pdf_size": 189290,
+      "pdf_pages": 7,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "024-يحيى",
+      "docx_exists": true,
+      "docx_size": 45360,
+      "pdf_exists": true,
+      "pdf_size": 169490,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "025-مريم",
+      "docx_exists": true,
+      "docx_size": 47081,
+      "pdf_exists": true,
+      "pdf_size": 195528,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "026-عيسى",
+      "docx_exists": true,
+      "docx_size": 50140,
+      "pdf_exists": true,
+      "pdf_size": 248952,
+      "pdf_pages": 8,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "027-الكهف",
+      "docx_exists": true,
+      "docx_size": 47360,
+      "pdf_exists": true,
+      "pdf_size": 199719,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "028-ذو القرنين",
+      "docx_exists": true,
+      "docx_size": 46507,
+      "pdf_exists": true,
+      "pdf_size": 185514,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "029-لقمان",
+      "docx_exists": true,
+      "docx_size": 45930,
+      "pdf_exists": true,
+      "pdf_size": 180037,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "030-السبت",
+      "docx_exists": true,
+      "docx_size": 46221,
+      "pdf_exists": true,
+      "pdf_size": 178561,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "031-الأخدود",
+      "docx_exists": true,
+      "docx_size": 45190,
+      "pdf_exists": true,
+      "pdf_size": 157581,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    },
+    {
+      "file": "032-الفيل",
+      "docx_exists": true,
+      "docx_size": 45048,
+      "pdf_exists": true,
+      "pdf_size": 157709,
+      "pdf_pages": 6,
+      "visual_QA": "passed"
+    }
+  ]
+}

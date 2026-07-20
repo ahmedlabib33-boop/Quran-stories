@@ -1,0 +1,92 @@
+[
+  {
+    "file_number": 23,
+    "excel_number": 24,
+    "story": "زكريا عليه السلام",
+    "docx": "023-زكريا.docx",
+    "overall": 99.2,
+    "passages": "آل عمران: من الآية 38 إلى الآية 41 | مريم: من الآية 2 إلى الآية 11 | الأنبياء: من الآية 89 إلى الآية 90",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/711/"
+  },
+  {
+    "file_number": 24,
+    "excel_number": 25,
+    "story": "يحيى عليه السلام",
+    "docx": "024-يحيى.docx",
+    "overall": 99.4,
+    "passages": "آل عمران: الآية 39 | مريم: من الآية 12 إلى الآية 15 | الأنبياء: الآية 90",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/711/"
+  },
+  {
+    "file_number": 25,
+    "excel_number": 26,
+    "story": "مريم عليها السلام",
+    "docx": "025-مريم.docx",
+    "overall": 98.8,
+    "passages": "آل عمران: من الآية 42 إلى الآية 47 | مريم: من الآية 16 إلى الآية 26 | التحريم: الآية 12",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/140/"
+  },
+  {
+    "file_number": 26,
+    "excel_number": 27,
+    "story": "عيسى عليه السلام",
+    "docx": "026-عيسى.docx",
+    "overall": 98.5,
+    "passages": "آل عمران: من الآية 45 إلى الآية 55 | النساء: من الآية 156 إلى الآية 159 | المائدة: من الآية 110 إلى الآية 120 | مريم: من الآية 27 إلى الآية 36 | الأنبياء: الآية 91 | المؤمنون: الآية 50 | الزخرف: من الآية 57 إلى الآية 65",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/145/"
+  },
+  {
+    "file_number": 27,
+    "excel_number": 28,
+    "story": "أصحاب الكهف",
+    "docx": "027-الكهف.docx",
+    "overall": 98.8,
+    "passages": "الكهف: من الآية 9 إلى الآية 26",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/704/"
+  },
+  {
+    "file_number": 28,
+    "excel_number": 29,
+    "story": "ذو القرنين",
+    "docx": "028-ذو القرنين.docx",
+    "overall": 98.8,
+    "passages": "الكهف: من الآية 83 إلى الآية 98",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/707/"
+  },
+  {
+    "file_number": 29,
+    "excel_number": 30,
+    "story": "لقمان",
+    "docx": "029-لقمان.docx",
+    "overall": 99.2,
+    "passages": "لقمان: من الآية 12 إلى الآية 19",
+    "fi_zilal_reference": "https://islamweb.net/ar/library/content/210/900/"
+  },
+  {
+    "file_number": 30,
+    "excel_number": 31,
+    "story": "أصحاب السبت",
+    "docx": "030-السبت.docx",
+    "overall": 98.8,
+    "passages": "البقرة: الآية 65 | النساء: الآية 47 | الأعراف: من الآية 163 إلى الآية 166",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/453/"
+  },
+  {
+    "file_number": 31,
+    "excel_number": 32,
+    "story": "أصحاب الأخدود",
+    "docx": "031-الأخدود.docx",
+    "overall": 98.8,
+    "passages": "البروج: من الآية 4 إلى الآية 8",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/1179/"
+  },
+  {
+    "file_number": 32,
+    "excel_number": 33,
+    "story": "أصحاب الفيل",
+    "docx": "032-الفيل.docx",
+    "overall": 99.2,
+    "passages": "الفيل: من الآية 1 إلى الآية 5",
+    "fi_zilal_reference": "https://www.islamweb.net/ar/library/content/210/1211/"
+  }
+]
