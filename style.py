@@ -210,6 +210,10 @@ div[data-testid="column"],
   display: none;
 }
 
+.mobile-screen-bar {
+  display: none;
+}
+
 .stButton > button {
   width: 100%;
   min-height: 48px;
@@ -875,6 +879,86 @@ div[data-testid="column"],
   .app-top-frame {
     min-height: 68px;
     border-radius: 0 0 20px 20px;
+  }
+
+  .app-top-frame.view-story,
+  .app-top-frame.view-explore {
+    display: none;
+  }
+
+  .mobile-screen-bar {
+    position: sticky;
+    top: 8px;
+    z-index: 80;
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) minmax(98px, .65fr);
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px solid rgba(216,183,106,.62);
+    border-bottom: 2px solid var(--gold-500);
+    border-radius: 18px;
+    color: var(--ivory-100);
+    background:
+      linear-gradient(45deg, transparent 48%, rgba(216,183,106,.08) 49%, transparent 50%) 0 0/28px 28px,
+      linear-gradient(135deg, var(--emerald-950), var(--emerald-800));
+    box-shadow: 0 12px 26px rgba(7,29,25,.20);
+  }
+
+  .mobile-screen-bar h2,
+  .mobile-screen-bar small,
+  .mobile-screen-bar strong {
+    margin: 0;
+    color: var(--ivory-100);
+    text-align: center;
+    font-family: "Cairo", sans-serif;
+  }
+
+  .mobile-screen-bar h2 {
+    font-size: 1.08rem;
+    font-weight: 900;
+  }
+
+  .mobile-screen-bar div {
+    display: grid;
+    gap: 2px;
+    padding: 5px 8px;
+    border: 1px solid rgba(216,183,106,.46);
+    border-radius: 999px;
+    background: rgba(7,29,25,.28);
+  }
+
+  .mobile-screen-bar small {
+    font-size: .58rem;
+    opacity: .75;
+  }
+
+  .mobile-screen-bar strong {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: .72rem;
+  }
+
+  .screen-menu {
+    width: 24px;
+    height: 18px;
+    display: inline-block;
+    margin-inline: auto;
+    border-top: 2px solid var(--gold-400);
+    border-bottom: 2px solid var(--gold-400);
+    position: relative;
+  }
+
+  .screen-menu::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 7px;
+    border-top: 2px solid var(--gold-400);
   }
 
   .brand-lockup {

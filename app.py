@@ -77,6 +77,12 @@ def clean(value: Any) -> str:
     return str(value).strip() if is_present(value) else ""
 
 
+def ui_label(value: Any) -> str:
+    text = clean(value)
+    text = re.sub(r"[\U0001F300-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\uFE0E\uFE0F]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def normalize(value: Any) -> str:
     text = clean(value)
     text = re.sub(r"[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]", "", text)
@@ -309,10 +315,13 @@ def story_options(index: list[dict[str, Any]]) -> list[str]:
     return ids
 
 
-def render_nav() -> None:
+def render_nav(index: list[dict[str, Any]]) -> None:
+    active_view = st.session_state.active_view
+    selected = next((item for item in index if item["id"] == st.session_state.selected_story_id), None)
+    selected_title = selected["title"] if selected else "اختر القصة"
     st.markdown(
-        """
-<header class="app-top-frame">
+        f"""
+<header class="app-top-frame view-{active_view}">
   <div class="top-pattern"></div>
   <div class="brand-lockup">
     <span class="brand-mark" aria-hidden="true"></span>
@@ -335,6 +344,17 @@ def render_nav() -> None:
             active = st.session_state.active_view == view
             if st.button(VIEW_LABELS[view], key=f"nav_mobile_{view}", type="primary" if active else "secondary"):
                 set_view(view)
+    if active_view in {"story", "explore"}:
+        st.markdown(
+            f"""
+<section class="mobile-screen-bar">
+  <span class="screen-menu"></span>
+  <h2>{VIEW_LABELS[active_view]}</h2>
+  <div><small>القصة المختارة</small><strong>{esc(selected_title)}</strong></div>
+</section>
+""",
+            unsafe_allow_html=True,
+        )
 
 
 def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool = False) -> None:
@@ -435,7 +455,7 @@ def render_preview_card(story: dict[str, Any]) -> None:
   <div class="selected-content">
     <h2>{esc(story["title"])}</h2>
     <p>{esc(story.get("subtitle", ""))}</p>
-    <div class="meta-row"><span>{esc(story.get("category", ""))}</span><span>{esc(story.get("core_value", ""))}</span></div>
+    <div class="meta-row"><span>{esc(ui_label(story.get("category", "")))}</span><span>{esc(ui_label(story.get("core_value", "")))}</span></div>
     <div class="skill-row">{skill_html}</div>
     <p class="refs">{esc(story.get("surah_references", ""))}</p>
     <div class="slide-progress"><span style="width:{progress}%"></span></div>
@@ -478,7 +498,7 @@ def render_story_header(story: dict[str, Any]) -> None:
     <span class="story-medallion">{int(story["number"]):02d}</span>
     <h1>{esc(story["title"])}</h1>
     <p>{esc(story.get("subtitle", ""))}</p>
-    <div class="meta-row"><span>{esc(story.get("category", ""))}</span><span>{esc(story.get("core_value", ""))}</span><span>{progress}%</span></div>
+    <div class="meta-row"><span>{esc(ui_label(story.get("category", "")))}</span><span>{esc(ui_label(story.get("core_value", "")))}</span><span>{progress}%</span></div>
     <p class="refs">{esc(story.get("surah_references", ""))}</p>
     <p class="refs">{esc(skills)}</p>
   </div>
@@ -635,7 +655,7 @@ def render_explore_view(index: list[dict[str, Any]]) -> None:
 <section class="explore-shell">
   <section class="explore-header">
     <h1>استكشف: قصة {esc(story["title"])}</h1>
-    <p>{esc(story.get("core_value"))} | {esc(story.get("category"))}</p>
+    <p>{esc(ui_label(story.get("core_value")))} | {esc(ui_label(story.get("category")))}</p>
     <p>{esc(story.get("subtitle"))}</p>
   </section>
   <section class="explore-grid">{"".join(cards)}</section>
@@ -649,7 +669,8 @@ def render_explore_view(index: list[dict[str, Any]]) -> None:
 def explore_content(story: dict[str, Any], block: str) -> str:
     overview = " | ".join(clean(row.get("value")) for row in story.get("overview", [])[:3] if clean(row.get("value")))
     if block == "القيم الأساسية":
-        return " | ".join(v for v in [story.get("core_value"), story.get("category"), story.get("significance")] if clean(v))
+        labels = [ui_label(v) for v in [story.get("core_value"), story.get("category"), story.get("significance")] if clean(v)]
+        return " | ".join(label for label in labels if label)
     if block == "التحليل النفسي":
         return overview or " | ".join(story.get("reflections", [])[:2])
     if block in {"الدروس القيادية", "الدروس الأخلاقية", "الدروس الإدارية", "الصبر والمرونة"}:
@@ -679,7 +700,7 @@ def render_related(index: list[dict[str, Any]], story: dict[str, Any]) -> None:
                 f"""
 <section class="related-card">
   <strong>{int(item["number"]):02d} - {esc(item["title"])}</strong>
-  <p>{esc(item.get("core_value"))} | {esc(item.get("category"))}</p>
+  <p>{esc(ui_label(item.get("core_value")))} | {esc(ui_label(item.get("category")))}</p>
   <small>تشترك مع القصة المختارة في القيمة أو التصنيف.</small>
 </section>
 """,
@@ -693,7 +714,7 @@ def main() -> None:
     index = load_excel_catalog()
     initialize_state(index)
     st.markdown(build_css("light"), unsafe_allow_html=True)
-    render_nav()
+    render_nav(index)
     if st.session_state.active_view == "home":
         render_home(index)
     elif st.session_state.active_view == "story":
