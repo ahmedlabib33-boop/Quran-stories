@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import html
+import math
 import re
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 
 from data_loader import StoryRepository
@@ -13,49 +15,17 @@ from style import build_css
 
 APP_DIR = Path(__file__).parent
 CONTENT_DIR = APP_DIR / "Quran_Stories"
+WORKBOOK_PATH = APP_DIR / ".streamlit" / "Stories included in holy (Quran).xlsx"
 
-DEFAULT_STATE = {
-    "current_view": "home",
-    "selected_story_id": None,
-    "selected_section": "verses",
-    "landing_slide": 0,
-    "search_query": "",
-    "selected_category": "الكل",
-    "selected_value": "الكل",
-    "selected_skill": "الكل",
-    "reading_progress": {},
-    "last_opened_story_id": None,
-    "theme": "light",
-}
-
-VIEW_LABELS = {
-    "home": "الرئيسية",
-    "story": "القصة",
-    "explore": "استكشف",
-}
-
-VIEW_ICONS = {
-    "home": "⌂",
-    "story": "▤",
-    "explore": "✦",
-}
-
-SECTION_OPTIONS = {
+VIEW_LABELS = {"home": "الرئيسية", "story": "القصة", "explore": "استكشف"}
+STORY_TABS = {
     "verses": "الآيات",
     "tafsir": "التفسير والتحليل",
     "summary": "خلاصة القصة",
     "transformation": "التحول الإنساني",
     "applications": "التطبيقات العملية",
 }
-
-SECTION_PROGRESS = {
-    "verses": 25,
-    "tafsir": 45,
-    "summary": 60,
-    "transformation": 80,
-    "applications": 100,
-}
-
+TAB_PROGRESS = {"verses": 25, "tafsir": 45, "summary": 60, "transformation": 80, "applications": 100}
 EXPLORE_BLOCKS = [
     "القيم الأساسية",
     "التحليل النفسي",
@@ -67,8 +37,19 @@ EXPLORE_BLOCKS = [
     "المهارات المكتسبة",
     "نقاط التحول",
 ]
-
-EMPTY_BLOCK = "لا توجد عناصر مسجلة لهذا الجانب في القصة الحالية"
+DEFAULT_STATE = {
+    "active_view": "home",
+    "selected_story_id": None,
+    "selected_surah": None,
+    "active_story_tab": "verses",
+    "home_slide": 0,
+    "last_opened_story_id": None,
+    "story_progress": {},
+    "search_query": "",
+    "category_filter": "الكل",
+    "value_filter": "الكل",
+    "skill_filter": "الكل",
+}
 
 
 st.set_page_config(
@@ -83,596 +64,642 @@ def esc(value: object) -> str:
     return html.escape("" if value is None else str(value))
 
 
-def content_root() -> Path:
-    return CONTENT_DIR if CONTENT_DIR.exists() else APP_DIR
+def is_present(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, float) and math.isnan(value):
+        return False
+    text = str(value).strip()
+    return bool(text and text.lower() not in {"nan", "none", "null", "[]", "{}"})
 
 
-def repository() -> StoryRepository:
-    return StoryRepository(content_root())
+def clean(value: Any) -> str:
+    return str(value).strip() if is_present(value) else ""
+
+
+def normalize(value: Any) -> str:
+    text = clean(value)
+    text = re.sub(r"[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]", "", text)
+    text = text.replace("ـ", "")
+    text = re.sub("[إأآٱا]", "ا", text)
+    text = text.replace("ى", "ي").replace("ة", "ه").replace("ؤ", "و").replace("ئ", "ي")
+    text = re.sub(r"[^\w\s\u0600-\u06ff]", " ", text)
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def split_list(value: Any) -> list[str]:
+    text = clean(value)
+    if not text:
+        return []
+    return [part.strip() for part in re.split(r"\s*[|،,؛]\s*|\s+[–—-]\s+", text) if part.strip()]
+
+
+def split_refs(value: Any) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    for part in str(clean(value)).split("|"):
+        item = part.strip()
+        if not item:
+            continue
+        match = re.match(r"(.+?)\s+([\d\-–]+)$", item)
+        if match:
+            refs.append({"surah": match.group(1).strip(), "ayah_range": match.group(2).replace("–", "-").strip(), "reference": item})
+        else:
+            refs.append({"surah": item, "ayah_range": "", "reference": item})
+    return refs
+
+
+def story_id(number: int) -> str:
+    return f"story-{number:03d}"
 
 
 @st.cache_data(show_spinner=False)
-def load_story_index_cached() -> list[dict[str, Any]]:
-    return repository().get_index()
+def load_excel_catalog() -> list[dict[str, Any]]:
+    df = pd.read_excel(WORKBOOK_PATH, sheet_name="Overall Stories")
+    rows: list[dict[str, Any]] = []
+    for _, row in df[df["#"].notna()].iterrows():
+        number = int(row["#"])
+        skills = split_list(row.get("Skill to be gained", ""))
+        rows.append(
+            {
+                "id": story_id(number),
+                "number": number,
+                "character": clean(row.get("Character")),
+                "title": clean(row.get("Story")) or clean(row.get("Character")),
+                "subtitle": clean(row.get("1-line Summary")),
+                "surah_references": clean(row.get("السور والآيات")),
+                "ayah_count": clean(row.get("عدد الآيات")),
+                "significance": clean(row.get("Significance")),
+                "core_value": clean(row.get("Core Value")),
+                "category": clean(row.get("Category")),
+                "skills": skills,
+                "refs": split_refs(row.get("السور والآيات")),
+            }
+        )
+    return rows
 
 
 @st.cache_data(show_spinner=False)
-def search_story_index_cached(query: str, category: str, value: str, skill: str) -> list[dict[str, Any]]:
-    return repository().search(query=query, category=category, value=value, skill=skill)
-
-
-@st.cache_data(show_spinner=False)
-def load_story_content_cached(story_id: str) -> dict[str, Any] | None:
+def load_iblis_excel_passages() -> list[dict[str, Any]]:
     try:
-        return repository().get_story(story_id)
+        df = pd.read_excel(WORKBOOK_PATH, sheet_name="1- أبليس")
+    except Exception:
+        return []
+    col = df.columns[0]
+    values = [clean(v) for v in df[col].tolist() if clean(v)]
+    passages: list[dict[str, Any]] = []
+    i = 0
+    while i < len(values):
+        text = values[i]
+        if text.startswith("- سورة") or text.startswith("سورة"):
+            surah_match = re.search(r"سورة\s+([^\(\n]+)", text)
+            surah = surah_match.group(1).strip() if surah_match else ""
+            ayah_numbers = re.findall(r"\((\d+)\)", text)
+            ayah_range = ""
+            if ayah_numbers:
+                ayah_range = ayah_numbers[0] if len(ayah_numbers) == 1 else f"{ayah_numbers[0]}-{ayah_numbers[-1]}"
+            explanation = values[i + 1] if i + 1 < len(values) and not values[i + 1].startswith("- سورة") else ""
+            passages.append(
+                {
+                    "surah": surah,
+                    "ayah_number": ayah_range,
+                    "ayah_range": ayah_range,
+                    "reference": f"{surah} {ayah_range}".strip(),
+                    "text": text,
+                    "tafsir": explanation,
+                }
+            )
+            i += 2 if explanation else 1
+        else:
+            i += 1
+    return passages
+
+
+@st.cache_data(show_spinner=False)
+def load_docx_story(story_id_value: str) -> dict[str, Any] | None:
+    try:
+        return StoryRepository(CONTENT_DIR).get_story(story_id_value)
     except Exception:
         return None
 
 
-@st.cache_data(show_spinner=False)
-def load_related_cached(story_id: str) -> list[dict[str, Any]]:
-    return repository().get_related(story_id)
+def get_story(index: list[dict[str, Any]], selected_id: str | None) -> dict[str, Any] | None:
+    if not selected_id:
+        return None
+    meta = next((item for item in index if item["id"] == selected_id), None)
+    if not meta:
+        return None
+    docx = load_docx_story(selected_id) or {}
+    story = {**meta}
+    story["summary"] = clean(docx.get("summary")) or meta.get("subtitle", "")
+    story["overview"] = docx.get("overview", [])
+    story["reflections"] = docx.get("reflections", [])
+    story["transformation_chain"] = docx.get("transformation_chain", [])
+    story["practical_applications"] = docx.get("practical_applications", {})
+    story["turning_points"] = docx.get("turning_points", [])
+    story["source_file"] = docx.get("source_file")
+    if selected_id == "story-001":
+        story["passages"] = load_iblis_excel_passages()
+    else:
+        story["passages"] = normalize_docx_passages(docx.get("verses", []), meta)
+    return story
 
 
-@st.cache_data(show_spinner=False)
-def load_previous_next_cached(story_id: str) -> tuple[str | None, str | None]:
-    return repository().get_previous_next(story_id)
+def normalize_docx_passages(verses: list[dict[str, Any]], meta: dict[str, Any]) -> list[dict[str, Any]]:
+    refs = meta.get("refs", [])
+    passages: list[dict[str, Any]] = []
+    for idx, verse in enumerate(verses):
+        ref = refs[min(idx, len(refs) - 1)] if refs else {}
+        text = clean(verse.get("text"))
+        surah = clean(ref.get("surah"))
+        match = re.search(r"سورة\s+([^\-\–\(\n|]+)", text)
+        if match:
+            surah = match.group(1).strip()
+        nums = re.findall(r"\((\d+)\)", text)
+        ayah = clean(ref.get("ayah_range"))
+        if nums:
+            ayah = nums[0] if len(nums) == 1 else f"{nums[0]}-{nums[-1]}"
+        explanation = "\n".join(clean(item) for item in verse.get("explanation", []) if clean(item))
+        passages.append(
+            {
+                "surah": surah or "غير محدد",
+                "ayah_number": ayah,
+                "ayah_range": ayah,
+                "reference": clean(ref.get("reference")) or f"{surah} {ayah}".strip(),
+                "text": text,
+                "tafsir": explanation,
+            }
+        )
+    return passages
 
 
-def initialize_state() -> None:
+def initialize_state(index: list[dict[str, Any]]) -> None:
     for key, value in DEFAULT_STATE.items():
         if key not in st.session_state:
             st.session_state[key] = value.copy() if isinstance(value, dict) else value
-    requested_view = st.query_params.get("view")
-    if requested_view in VIEW_LABELS:
-        st.session_state.current_view = requested_view
-    if st.session_state.current_view not in VIEW_LABELS:
-        st.session_state.current_view = "home"
-    if st.session_state.selected_section not in SECTION_OPTIONS:
-        st.session_state.selected_section = "verses"
-    st.session_state.landing_slide = int(st.session_state.landing_slide) % 3
+    if st.session_state.active_view not in VIEW_LABELS:
+        st.session_state.active_view = "home"
+    if st.session_state.active_story_tab not in STORY_TABS:
+        st.session_state.active_story_tab = "verses"
 
 
-def navigate(view: str) -> None:
-    st.session_state.current_view = view if view in VIEW_LABELS else "home"
-    st.query_params["view"] = st.session_state.current_view
+def set_view(view: str) -> None:
+    st.session_state.active_view = view
     st.rerun()
 
 
-def progress_for(story_id: str | None) -> int:
-    if not story_id:
+def set_progress(story_id_value: str | None, value: int) -> None:
+    if not story_id_value:
+        return
+    progress = dict(st.session_state.story_progress)
+    progress[story_id_value] = max(int(progress.get(story_id_value, 0)), value)
+    st.session_state.story_progress = progress
+
+
+def progress_for(story_id_value: str | None) -> int:
+    if not story_id_value:
         return 0
-    return int(st.session_state.reading_progress.get(story_id, 0))
+    return int(st.session_state.story_progress.get(story_id_value, 0))
 
 
-def set_progress(story_id: str | None, value: int) -> None:
-    if not story_id:
-        return
-    progress = dict(st.session_state.reading_progress)
-    progress[story_id] = max(int(progress.get(story_id, 0)), value)
-    st.session_state.reading_progress = progress
+def previous_next_ids(index: list[dict[str, Any]], story_id_value: str) -> tuple[str | None, str | None]:
+    ids = [item["id"] for item in index]
+    if story_id_value not in ids:
+        return None, None
+    position = ids.index(story_id_value)
+    previous_id = ids[position - 1] if position > 0 else None
+    next_id = ids[position + 1] if position < len(ids) - 1 else None
+    return previous_id, next_id
 
 
-def select_story(story_id: str, view: str = "story") -> None:
-    st.session_state.selected_story_id = story_id
-    st.session_state.last_opened_story_id = story_id
-    st.session_state.selected_section = "verses"
-    st.session_state.current_view = view
-    st.query_params["view"] = view
-    set_progress(story_id, 10)
+def select_story(story_id_value: str, view: str | None = None) -> None:
+    st.session_state.selected_story_id = story_id_value
+    st.session_state.last_opened_story_id = story_id_value
+    st.session_state.selected_surah = None
+    st.session_state.active_story_tab = "verses"
+    set_progress(story_id_value, 10)
+    if view:
+        st.session_state.active_view = view
     st.rerun()
 
 
-def set_story_state(story_id: str, view: str = "story") -> None:
-    st.session_state.selected_story_id = story_id
-    st.session_state.last_opened_story_id = story_id
-    st.session_state.selected_section = "verses"
-    st.session_state.current_view = view
-    st.query_params["view"] = view
-    set_progress(story_id, 10)
-
-
-def change_selected_story(story_id: str, view: str = "story") -> None:
-    st.session_state.selected_story_id = story_id
-    st.session_state.last_opened_story_id = story_id
-    st.session_state.selected_section = "verses"
-    st.session_state.current_view = view
-    set_progress(story_id, 10)
-    st.rerun()
-
-
-def reset_filters_state() -> None:
+def reset_filters() -> None:
     st.session_state.search_query = ""
-    st.session_state.selected_category = "الكل"
-    st.session_state.selected_value = "الكل"
-    st.session_state.selected_skill = "الكل"
+    st.session_state.category_filter = "الكل"
+    st.session_state.value_filter = "الكل"
+    st.session_state.skill_filter = "الكل"
 
 
-def reset_search_state() -> None:
-    st.session_state.search_query = ""
+def story_options(index: list[dict[str, Any]]) -> list[str]:
+    query = normalize(st.session_state.search_query)
+    selected_category = st.session_state.category_filter
+    selected_value = st.session_state.value_filter
+    selected_skill = st.session_state.skill_filter
+    ids: list[str] = []
+    for item in index:
+        haystack = normalize(" ".join([item["title"], item.get("subtitle", ""), item.get("category", ""), item.get("core_value", ""), " ".join(item.get("skills", [])), item.get("surah_references", "")]))
+        if query and query not in haystack:
+            continue
+        if selected_category != "الكل" and item.get("category") != selected_category:
+            continue
+        if selected_value != "الكل" and item.get("core_value") != selected_value:
+            continue
+        if selected_skill != "الكل" and selected_skill not in item.get("skills", []):
+            continue
+        ids.append(item["id"])
+    return ids
 
 
-def reset_classification_state() -> None:
-    st.session_state.selected_category = "الكل"
-    st.session_state.selected_value = "الكل"
-    st.session_state.selected_skill = "الكل"
-
-
-def story_by_id(index: list[dict[str, Any]], story_id: str | None) -> dict[str, Any] | None:
-    if not story_id:
-        return None
-    return next((story for story in index if story["id"] == story_id), None)
-
-
-def split_skills(value: str | list[str] | None) -> list[str]:
-    if isinstance(value, list):
-        return [str(item).strip() for item in value if str(item).strip()]
-    text = "" if value is None else str(value)
-    return [part.strip() for part in re.split(r"[-–—،,]+", text) if part.strip()]
-
-
-def unique_options(items: list[str]) -> list[str]:
-    return ["الكل"] + sorted({item for item in items if item})
-
-
-def story_art_class(story: dict[str, Any]) -> str:
-    number = int(story.get("number", 0) or 0)
-    return f"art-{(number % 6) + 1}"
-
-
-def render_navigation() -> None:
-    current = st.session_state.current_view
-    links = []
-    for view, label in VIEW_LABELS.items():
-        active = "active" if view == current else ""
-        links.append(
-            f'<a class="nav-link {active}" href="?view={view}">'
-            f'<span class="nav-icon">{VIEW_ICONS[view]}</span><b>{label}</b></a>'
-        )
-    top_nav = "" if current == "home" else f"""
-<nav class="top-nav" aria-label="التنقل الرئيسي">
-  <a class="hamburger" href="?view=home" aria-label="الرئيسية">☰</a>
-  <strong class="screen-title">{VIEW_LABELS[current]}</strong>
-  <div class="selected-mini">القصة المختارة</div>
-  <div class="nav-links">{''.join(links)}</div>
-</nav>
-"""
+def render_nav() -> None:
     st.markdown(
-        f"""
-{top_nav}
-<nav class="bottom-nav" aria-label="تنقل الجوال">
-  {''.join(links)}
-</nav>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-def render_empty_state(message: str = "لم يتم اختيار قصة بعد", subtitle: str = "اختر قصة من الصفحة الرئيسية لبدء القراءة") -> None:
-    st.markdown(
-        f"""
-<section class="empty-panel centered-state">
-  <div class="empty-symbol">☪</div>
-  <h2>{esc(message)}</h2>
-  <p>{esc(subtitle)}</p>
-</section>
-""",
-        unsafe_allow_html=True,
-    )
-    if st.button("اختيار قصة", key=f"empty_home_{message}"):
-        navigate("home")
-
-
-def render_slide_dots(active: int) -> None:
-    cols = st.columns([1, 1, 1])
-    for idx, col in enumerate(cols):
-        with col:
-            label = "●" if idx == active else "○"
-            if st.button(label, key=f"landing_dot_{idx}"):
-                st.session_state.landing_slide = idx
-                st.rerun()
-
-
-def render_landing_slides(index: list[dict[str, Any]]) -> None:
-    last_story = story_by_id(index, st.session_state.last_opened_story_id)
-    featured = last_story or (index[10] if len(index) > 10 else index[0])
-    progress = progress_for(featured["id"]) if featured else 0
-
-    st.markdown(
-        f"""
-<section class="target-hero home-hero landing-slide">
-  <div class="hero-copy">
-    <h1>اِبْتِهَال</h1>
-    <p>قصص تُحيي القلب، وهدايات تصنع الوعي</p>
-    <span class='gold-cta ghost-cta'>استكشف القصص</span>
-  </div>
-  <div class="hero-arch" aria-hidden="true"></div>
-</section>
-""",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f"""
-<div class="hidden-slide-state" aria-hidden="true">
-  <span>آخر قصة: {esc(featured.get('title', ''))}</span>
-  <span>التقدم {progress}%</span>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-def render_filters(index: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    value_options = unique_options([story.get("core_value", "") for story in index])
-    skill_options = unique_options([skill for story in index for skill in split_skills(story.get("skills", ""))])
-    category_options = unique_options([story.get("category", "") for story in index])
-
-    cols = st.columns([1.05, 3.2])
-    with cols[0]:
-        st.selectbox("تصفية", category_options, key="selected_category", label_visibility="collapsed")
-    with cols[1]:
-        st.text_input(
-            "بحث",
-            placeholder="ابحث عن قصة...",
-            key="search_query",
-            label_visibility="collapsed",
-        )
-    st.markdown(
-        "<section class='category-strip clone-chips'>"
-        + "".join(f"<span>{esc(item)}</span>" for item in category_options[1:6])
-        + "</section>",
-        unsafe_allow_html=True,
-    )
-
-    return search_story_index_cached(
-        st.session_state.search_query,
-        st.session_state.selected_category,
-        st.session_state.selected_value,
-        st.session_state.selected_skill,
-    )
-
-
-def render_story_card(story: dict[str, Any]) -> None:
-    progress = progress_for(story["id"])
-    skills = "، ".join(split_skills(story.get("skills", ""))[:2])
-    st.markdown(
-        f"""
-<article class="story-card visual-card">
-  <div class="story-art {story_art_class(story)}">
-    <span class="story-badge">{int(story["number"]):02d}</span>
-  </div>
-  <div class="story-card-body">
-    <h3>{esc(story.get("title", ""))}</h3>
-    <p>{esc(story.get("subtitle") or story.get("core_value", ""))}</p>
-    <div class="card-meta">
-      <span class="card-chip">{esc(story.get("category", ""))}</span>
-      <span class="card-chip">{esc(story.get("core_value", ""))}</span>
+        """
+<header class="app-top-frame">
+  <div class="top-pattern"></div>
+  <div class="brand-lockup">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <h1>اِبْتِهَال</h1>
+      <p>قصص تُحيي القلب، وهدايات تصنع الوعي</p>
     </div>
-    <small>{esc(skills)}</small>
-    <small>{esc(story.get("surah_references", ""))}</small>
-    <div class="progress-line inline-progress"><span style="width:{progress}%"></span></div>
   </div>
-</article>
+</header>
 """,
         unsafe_allow_html=True,
     )
-    if st.button("فتح القصة", key=f"open_{story['id']}"):
-        select_story(story["id"], "story")
+    with st.container(key="desktop_nav"):
+        for view in ["home", "story", "explore"]:
+            active = st.session_state.active_view == view
+            if st.button(VIEW_LABELS[view], key=f"nav_desktop_{view}", type="primary" if active else "secondary"):
+                set_view(view)
+    with st.container(key="mobile_nav"):
+        for view in ["home", "story", "explore"]:
+            active = st.session_state.active_view == view
+            if st.button(VIEW_LABELS[view], key=f"nav_mobile_{view}", type="primary" if active else "secondary"):
+                set_view(view)
 
 
-def render_continue_reading(index: list[dict[str, Any]]) -> None:
-    last_id = st.session_state.last_opened_story_id or (index[11]["id"] if len(index) > 11 else index[0]["id"])
-    story = story_by_id(index, last_id)
-    if not story:
+def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool = False) -> None:
+    ids = story_options(index) if filtered else [item["id"] for item in index]
+    if not ids:
+        st.warning("لا توجد قصص مطابقة لمعايير البحث الحالية")
+        st.button("إعادة ضبط", key=f"reset_{key}", on_click=reset_filters)
         return
-    progress = progress_for(last_id)
-    st.markdown(
-        f"""
-<section class="continue-card reference-card">
-  <div class="mini-art {story_art_class(story)}"></div>
-  <div>
-    <strong>آخر قصة قرأتها</strong>
-    <h3>{esc(story["title"])}</h3>
-    <p>القصة رقم {int(story["number"]):02d} | التقدم {progress}%</p>
-  </div>
-  <div class="progress-line"><span style="width:{progress}%"></span></div>
-</section>
-""",
-        unsafe_allow_html=True,
+    selected_index = ids.index(st.session_state.selected_story_id) if st.session_state.selected_story_id in ids else None
+    selected = st.selectbox(
+        "اختر القصة",
+        ids,
+        index=selected_index,
+        format_func=lambda item_id: next((item["title"] for item in index if item["id"] == item_id), item_id),
+        key=key,
+        placeholder="اختر القصة",
     )
-    if st.button("متابعة القراءة", key="continue_reading"):
-        st.session_state.selected_story_id = last_id
-        st.session_state.last_opened_story_id = last_id
-        set_progress(last_id, 10)
-        navigate("story")
+    if selected and selected != st.session_state.selected_story_id:
+        select_story(selected)
 
 
 def render_home(index: list[dict[str, Any]]) -> None:
-    render_landing_slides(index)
-    filtered = render_filters(index)
-    st.markdown(f'<h2 class="section-title tight">القصص المتاحة <span>({len(filtered)})</span></h2>', unsafe_allow_html=True)
-    if not filtered:
-        st.warning("لا توجد قصص مطابقة لمعايير البحث الحالية")
-        reset_cols = st.columns(2)
-        with reset_cols[0]:
-            st.button("إعادة ضبط البحث", key="reset_search", on_click=reset_search_state)
-        with reset_cols[1]:
-            st.button("إعادة ضبط التصنيفات", key="reset_classifications", on_click=reset_classification_state)
-    if not st.session_state.search_query and st.session_state.selected_category == "الكل":
-        target_ids = ["story-012", "story-015", "story-007", "story-004", "story-013", "story-011"]
-        target_stories = [story_by_id(index, story_id) for story_id in target_ids]
-        visible_stories = [story for story in target_stories if story]
-    else:
-        visible_stories = filtered[:6]
-    for start in range(0, len(visible_stories), 3):
-        cols = st.columns(3)
-        for col, story in zip(cols, visible_stories[start : start + 3]):
-            with col:
-                render_story_card(story)
-    render_continue_reading(index)
+    render_home_carousel(index)
+    st.markdown('<section class="control-panel">', unsafe_allow_html=True)
+    render_story_selector(index, "home_story_selector", filtered=False)
+    st.markdown("</section>", unsafe_allow_html=True)
+    story = get_story(index, st.session_state.selected_story_id)
+    if story:
+        render_preview_card(story)
 
 
-def render_story_selector(story: dict[str, Any], index: list[dict[str, Any]], key: str, view: str) -> None:
-    ids = [item["id"] for item in index]
-    if story["id"] not in ids:
-        return
-    selected = st.selectbox(
-        "القصة المختارة",
-        options=ids,
-        index=ids.index(story["id"]),
-        format_func=lambda item_id: story_by_id(index, item_id)["title"],
-        key=f"{key}_{story['id']}",
-        label_visibility="collapsed",
-    )
-    if selected != story["id"]:
-        change_selected_story(selected, view)
+def render_home_carousel(index: list[dict[str, Any]]) -> None:
+    last = get_story(index, st.session_state.last_opened_story_id) or get_story(index, st.session_state.selected_story_id) or (index[0] if index else None)
+    progress = progress_for(last["id"]) if last else 0
+    slide = int(st.session_state.home_slide) % 3
+    slide_html = [
+        """
+<article class="brand-slide">
+  <div>
+    <span class="brand-emblem"></span>
+    <h1>اِبْتِهَال</h1>
+    <p>قصص تُحيي القلب، وهدايات تصنع الوعي</p>
+    <span class="gold-cta">استكشف القصص</span>
+  </div>
+  <div class="andalusian-arch"></div>
+</article>
+""",
+        f"""
+<article class="brand-slide">
+  <div>
+    <span class="brand-emblem"></span>
+    <h1>تابع رحلتك</h1>
+    <p>{esc(last["title"] if last else "اختر قصة")}</p>
+    <div class="slide-progress"><span style="width:{progress}%"></span></div>
+    <span class="gold-cta">متابعة القراءة</span>
+  </div>
+  <div class="lantern-panel"></div>
+</article>
+""",
+        """
+<article class="brand-slide">
+  <div>
+    <span class="brand-emblem"></span>
+    <h1>تدبر القصة واكتشف معناها</h1>
+    <p>القيم والتحولات النفسية والقيادية والدروس العملية في قصة واحدة</p>
+    <div class="indicator-cloud"><span>القيم</span><span>التحليل النفسي</span><span>القيادة</span><span>الإدارة</span><span>الصبر</span><span>اتخاذ القرار</span></div>
+  </div>
+  <div class="star-panel"></div>
+</article>
+""",
+    ]
+    st.markdown(f'<section class="carousel-shell">{slide_html[slide]}</section>', unsafe_allow_html=True)
+    with st.container(key="slide_controls"):
+        if st.button("السابق", key="slide_prev"):
+            st.session_state.home_slide = (slide - 1) % 3
+            st.rerun()
+        for idx in range(3):
+            if st.button("●" if idx == slide else "○", key=f"slide_dot_{idx}"):
+                st.session_state.home_slide = idx
+                st.rerun()
+        if st.button("التالي", key="slide_next"):
+            st.session_state.home_slide = (slide + 1) % 3
+            st.rerun()
+    if slide == 1 and st.button("متابعة القراءة", key="continue_slide"):
+        select_story((last or {})["id"], "story")
+    if slide == 2 and st.button("ابدأ الاستكشاف", key="explore_slide"):
+        set_view("explore")
 
 
-def render_story_header(story: dict[str, Any], index: list[dict[str, Any]]) -> None:
+def render_preview_card(story: dict[str, Any]) -> None:
     progress = progress_for(story["id"])
-    skills = "، ".join(story.get("skills", []))
-    render_story_selector(story, index, "story_changer", "story")
+    skills = story.get("skills", [])[:3]
+    skill_html = "".join(f"<span>{esc(skill)}</span>" for skill in skills)
     st.markdown(
         f"""
-<section class="target-hero story-hero">
-  <div class="hero-arch story-arch {story_art_class(story)}" aria-hidden="true"></div>
-  <div class="hero-copy story-copy">
+<section class="selected-card">
+  <div class="story-visual {story_art_class(story)}"><span>{int(story["number"]):02d}</span></div>
+  <div class="selected-content">
+    <h2>{esc(story["title"])}</h2>
+    <p>{esc(story.get("subtitle", ""))}</p>
+    <div class="meta-row"><span>{esc(story.get("category", ""))}</span><span>{esc(story.get("core_value", ""))}</span></div>
+    <div class="skill-row">{skill_html}</div>
+    <p class="refs">{esc(story.get("surah_references", ""))}</p>
+    <div class="slide-progress"><span style="width:{progress}%"></span></div>
+    <small>تقدم القراءة: {progress}%</small>
+  </div>
+</section>
+""",
+        unsafe_allow_html=True,
+    )
+    if st.button("فتح القصة", key="open_selected_story"):
+        select_story(story["id"], "story")
+
+
+def story_art_class(story: dict[str, Any]) -> str:
+    return f"art-{(int(story.get('number', 0)) % 6) + 1}"
+
+
+def render_story_view(index: list[dict[str, Any]]) -> None:
+    story = get_story(index, st.session_state.selected_story_id)
+    if not story:
+        st.warning("لم يتم اختيار قصة بعد")
+        if st.button("اختيار قصة", key="choose_from_empty_story"):
+            set_view("home")
+        return
+    set_progress(story["id"], 10)
+    render_story_selector(index, "global_story_selector_story")
+    render_story_header(story)
+    render_previous_next(index, story)
+    render_story_tabs(story)
+
+
+def render_story_header(story: dict[str, Any]) -> None:
+    progress = progress_for(story["id"])
+    skills = "، ".join(story.get("skills", [])[:4])
+    st.markdown(
+        f"""
+<section class="story-header">
+  <div class="story-visual {story_art_class(story)}"><span>{int(story["number"]):02d}</span></div>
+  <div>
     <span class="story-medallion">{int(story["number"]):02d}</span>
     <h1>{esc(story["title"])}</h1>
     <p>{esc(story.get("subtitle", ""))}</p>
-    <div class="hero-meta">
-      <span>{esc(story.get("category", ""))}</span>
-      <span>{esc(story.get("core_value", ""))}</span>
-      <span>التقدم {progress}%</span>
-    </div>
-    <p class="hero-ref">{esc(story.get("surah_references", ""))}</p>
-    <p class="hero-ref">{esc(skills)}</p>
+    <div class="meta-row"><span>{esc(story.get("category", ""))}</span><span>{esc(story.get("core_value", ""))}</span><span>{progress}%</span></div>
+    <p class="refs">{esc(story.get("surah_references", ""))}</p>
+    <p class="refs">{esc(skills)}</p>
   </div>
+  <div class="progress-ring" style="--value:{progress}%;"><strong>{progress}%</strong><small>القراءة</small></div>
 </section>
 """,
         unsafe_allow_html=True,
     )
 
 
-def render_section_control(story_id: str) -> None:
-    labels = list(SECTION_OPTIONS.values())
-    keys = list(SECTION_OPTIONS)
-    selected_label = st.radio(
-        "أقسام القصة",
-        labels,
-        index=keys.index(st.session_state.selected_section),
-        horizontal=True,
-        key="section_control",
-        label_visibility="collapsed",
-    )
-    new_section = next(key for key, value in SECTION_OPTIONS.items() if value == selected_label)
-    if new_section != st.session_state.selected_section:
-        st.session_state.selected_section = new_section
-    set_progress(story_id, SECTION_PROGRESS.get(st.session_state.selected_section, 10))
+def render_previous_next(index: list[dict[str, Any]], story: dict[str, Any]) -> None:
+    previous_id, next_id = previous_next_ids(index, story["id"])
+    previous_story = next((item for item in index if item["id"] == previous_id), None)
+    next_story = next((item for item in index if item["id"] == next_id), None)
+    with st.container(key="story_prev_next"):
+        if previous_story and st.button(f"السابق: {previous_story['title']}", key=f"previous_{story['id']}"):
+            select_story(previous_story["id"], "story")
+        if next_story and st.button(f"التالي: {next_story['title']}", key=f"next_{story['id']}"):
+            select_story(next_story["id"], "story")
 
 
-def render_verses(story: dict[str, Any]) -> None:
-    st.markdown('<h2 class="section-title">الآيات</h2>', unsafe_allow_html=True)
-    verses = story.get("verses", [])
-    if not verses:
-        st.info("يوجد مرجع لهذه القصة دون نص قرآني مفصل في البيانات الحالية. لا يتم إنشاء نص بديل.")
-        st.markdown(f'<section class="detail-panel"><p>{esc(story.get("surah_references", ""))}</p></section>', unsafe_allow_html=True)
+def render_story_tabs(story: dict[str, Any]) -> None:
+    with st.container(key="story_tabs"):
+        cols = st.columns(len(STORY_TABS))
+        for col, (tab, label) in zip(cols, STORY_TABS.items()):
+            with col:
+                active = st.session_state.active_story_tab == tab
+                if st.button(label, key=f"tab_{tab}", type="primary" if active else "secondary"):
+                    st.session_state.active_story_tab = tab
+                    set_progress(story["id"], TAB_PROGRESS[tab])
+                    st.rerun()
+    set_progress(story["id"], TAB_PROGRESS.get(st.session_state.active_story_tab, 10))
+    if st.session_state.active_story_tab == "verses":
+        render_verses_tab(story)
+    elif st.session_state.active_story_tab == "tafsir":
+        render_analysis_tab(story)
+    elif st.session_state.active_story_tab == "summary":
+        render_summary_tab(story)
+    elif st.session_state.active_story_tab == "transformation":
+        render_transformation_tab(story)
+    elif st.session_state.active_story_tab == "applications":
+        render_applications_tab(story)
+
+
+def related_surahs(story: dict[str, Any]) -> list[str]:
+    surahs = []
+    seen = set()
+    for passage in story.get("passages", []):
+        key = normalize(passage.get("surah"))
+        if key and key not in seen:
+            surahs.append(passage["surah"])
+            seen.add(key)
+    for ref in story.get("refs", []):
+        key = normalize(ref.get("surah"))
+        if key and key not in seen:
+            surahs.append(ref["surah"])
+            seen.add(key)
+    return surahs
+
+
+def render_verses_tab(story: dict[str, Any]) -> None:
+    surahs = related_surahs(story)
+    if not surahs:
+        st.warning("النص القرآني غير متاح في مصدر البيانات الحالي، ويجب مراجعته قبل النشر.")
         return
-    for passage in verses:
-        st.markdown(f'<section class="quran-block"><p>{esc(passage.get("text", ""))}</p></section>', unsafe_allow_html=True)
-        for explanation in passage.get("explanation", []):
-            st.markdown(f'<section class="tafsir-panel"><strong>التفسير</strong><p>{esc(explanation)}</p></section>', unsafe_allow_html=True)
-
-
-def render_tafsir(story: dict[str, Any]) -> None:
-    st.markdown('<h2 class="section-title">التفسير والتحليل</h2>', unsafe_allow_html=True)
-    rendered = False
-    for row in story.get("overview", []):
-        rendered = True
-        st.markdown(f'<section class="detail-panel"><h3>{esc(row.get("label", ""))}</h3><p>{esc(row.get("value", ""))}</p></section>', unsafe_allow_html=True)
-    for reflection in story.get("reflections", [])[:8]:
-        rendered = True
-        st.markdown(f'<section class="detail-panel"><p>{esc(reflection)}</p></section>', unsafe_allow_html=True)
-    if not rendered:
-        st.info("لا توجد عناصر مسجلة لهذا الجانب في القصة الحالية")
-
-
-def render_summary(story: dict[str, Any]) -> None:
-    st.markdown('<h2 class="section-title">خلاصة القصة</h2>', unsafe_allow_html=True)
-    summary = story.get("summary") or story.get("subtitle") or story.get("significance")
-    if summary:
-        st.markdown(f'<section class="manuscript-panel"><p>{esc(summary)}</p></section>', unsafe_allow_html=True)
-    else:
-        st.info("لا توجد عناصر مسجلة لهذا الجانب في القصة الحالية")
-
-
-def render_transformation(story: dict[str, Any]) -> None:
-    st.markdown('<h2 class="section-title">التحول الإنساني</h2>', unsafe_allow_html=True)
-    chain = story.get("transformation_chain", [])
-    if not chain:
-        st.info("لا توجد عناصر مسجلة لهذا الجانب في القصة الحالية")
+    selected = st.selectbox("اختر السورة", surahs, key=f"surah_{story['id']}")
+    st.session_state.selected_surah = selected
+    passages = [p for p in story.get("passages", []) if normalize(p.get("surah")) == normalize(selected)]
+    if not passages:
+        st.warning("النص القرآني غير متاح في مصدر البيانات الحالي، ويجب مراجعته قبل النشر.")
+        refs = [ref for ref in story.get("refs", []) if normalize(ref.get("surah")) == normalize(selected)]
+        for ref in refs:
+            st.markdown(f'<section class="manuscript-panel"><strong>{esc(ref.get("reference"))}</strong></section>', unsafe_allow_html=True)
         return
-    st.markdown('<section class="flow-chain">', unsafe_allow_html=True)
-    for item in chain:
+    for idx, passage in enumerate(passages, 1):
         st.markdown(
             f"""
-<div class="flow-step">
-  <strong>{esc(item.get("stage", ""))}</strong>
-  <p>{esc(item.get("text", ""))}</p>
-  <small>{esc(item.get("application", ""))}</small>
-</div>
+<article class="ayah-card">
+  <header><span>{esc(passage.get("ayah_number") or str(idx))}</span><strong>{esc(passage.get("surah"))}</strong><small>{esc(passage.get("reference"))}</small></header>
+  <div class="quran-text">{esc(passage.get("text"))}</div>
+  <section class="tafsir-under"><strong>التفسير</strong><p>{esc(passage.get("tafsir")) if clean(passage.get("tafsir")) else "لا يوجد تفسير موثق لهذه الآية في مصدر البيانات الحالي."}</p></section>
+</article>
 """,
             unsafe_allow_html=True,
         )
+
+
+def render_analysis_tab(story: dict[str, Any]) -> None:
+    blocks = []
+    for row in story.get("overview", []):
+        if clean(row.get("value")):
+            blocks.append((clean(row.get("label")), clean(row.get("value"))))
+    for text in story.get("reflections", [])[:8]:
+        if clean(text):
+            blocks.append(("تأمل وتحليل", clean(text)))
+    if not blocks:
+        st.info("لا توجد بيانات موثقة لهذا القسم")
+        return
+    for title, body in blocks:
+        st.markdown(f'<section class="analysis-block"><h3>{esc(title)}</h3><p>{esc(body)}</p></section>', unsafe_allow_html=True)
+
+
+def render_summary_tab(story: dict[str, Any]) -> None:
+    items = [story.get("summary"), story.get("significance"), *story.get("turning_points", [])[:5]]
+    rendered = False
+    for item in items:
+        if clean(item):
+            rendered = True
+            st.markdown(f'<section class="manuscript-panel"><p>{esc(item)}</p></section>', unsafe_allow_html=True)
+    if not rendered:
+        st.info("لا توجد بيانات موثقة لهذا القسم")
+
+
+def render_transformation_tab(story: dict[str, Any]) -> None:
+    chain = story.get("transformation_chain", [])
+    if not chain:
+        st.info("لا توجد بيانات موثقة لهذا القسم")
+        return
+    st.markdown('<section class="transformation-flow">', unsafe_allow_html=True)
+    for idx, item in enumerate(chain, 1):
+        st.markdown(f'<article><span>{idx}</span><h3>{esc(item.get("stage"))}</h3><p>{esc(item.get("text"))}</p><small>{esc(item.get("application"))}</small></article>', unsafe_allow_html=True)
     st.markdown("</section>", unsafe_allow_html=True)
 
 
-def render_applications(story: dict[str, Any]) -> None:
-    st.markdown('<h2 class="section-title">التطبيقات العملية</h2>', unsafe_allow_html=True)
-    applications = story.get("practical_applications", {})
-    if not applications:
-        st.info("لا توجد عناصر مسجلة لهذا الجانب في القصة الحالية")
-        return
-    for title, body in applications.items():
-        if body:
-            st.markdown(f'<section class="lesson-row"><strong>{esc(title)}</strong><p>{esc(body)}</p></section>', unsafe_allow_html=True)
+def render_applications_tab(story: dict[str, Any]) -> None:
+    apps = story.get("practical_applications", {})
+    rendered = False
+    st.markdown('<section class="applications-grid">', unsafe_allow_html=True)
+    for title, body in apps.items():
+        if clean(body):
+            rendered = True
+            st.markdown(f'<article class="application-card"><span></span><h3>{esc(title)}</h3><p>{esc(body)}</p></article>', unsafe_allow_html=True)
+    st.markdown("</section>", unsafe_allow_html=True)
+    if not rendered:
+        st.info("لا توجد بيانات موثقة لهذا القسم")
 
 
-def render_story_screen(index: list[dict[str, Any]]) -> None:
-    selected_id = st.session_state.selected_story_id
-    if not selected_id:
-        render_empty_state()
-        return
-    story = load_story_content_cached(selected_id)
+def render_explore_view(index: list[dict[str, Any]]) -> None:
+    story = get_story(index, st.session_state.selected_story_id)
     if not story:
-        render_empty_state("تعذر تحميل محتوى هذه القصة حالياً", "اختر قصة أخرى أو عد إلى الصفحة الرئيسية")
+        st.warning("اختر قصة أولاً لاستكشاف قيمها ودروسها")
+        if st.button("اختيار قصة", key="choose_from_empty_explore"):
+            set_view("home")
         return
-    set_progress(selected_id, 10)
-    render_story_header(story, index)
-    render_section_control(selected_id)
-    section = st.session_state.selected_section
-    if section == "verses":
-        render_verses(story)
-    elif section == "tafsir":
-        render_tafsir(story)
-    elif section == "summary":
-        render_summary(story)
-    elif section == "transformation":
-        render_transformation(story)
-    elif section == "applications":
-        render_applications(story)
-
-    previous_id, next_id = load_previous_next_cached(selected_id)
-    cols = st.columns([1, .7, 1])
-    with cols[0]:
-        st.button(
-            "القصة السابقة",
-            key="previous_story",
-            disabled=previous_id is None,
-            on_click=set_story_state,
-            args=(previous_id or selected_id, "story"),
+    render_story_selector(index, "global_story_selector_explore")
+    cards = []
+    for block in EXPLORE_BLOCKS:
+        content = explore_content(story, block)
+        cards.append(
+            f'<article class="explore-card"><h3>{esc(block)}</h3><p>{esc(content or "لا توجد بيانات موثقة لهذا القسم")}</p></article>'
         )
-    with cols[1]:
-        if st.button("استكشف", key="story_to_explore"):
-            navigate("explore")
-    with cols[2]:
-        st.button(
-            "القصة التالية",
-            key="next_story",
-            disabled=next_id is None,
-            on_click=set_story_state,
-            args=(next_id or selected_id, "story"),
-        )
-
-
-def block_items(story: dict[str, Any], block: str) -> list[str]:
-    overview_values = [f'{row.get("label", "")}: {row.get("value", "")}' for row in story.get("overview", []) if row.get("value")]
-    if block == "القيم الأساسية":
-        return [item for item in [story.get("core_value", ""), story.get("category", ""), story.get("significance", "")] if item]
-    if block == "التحليل النفسي":
-        return overview_values[:3] or story.get("reflections", [])[:3]
-    if block == "الدروس القيادية":
-        return [item for item in overview_values + story.get("reflections", []) if any(word in item for word in ["قياد", "قرار", "مسؤول", "حكم"])]
-    if block == "الدروس الأخلاقية":
-        return [item for item in [story.get("core_value", ""), story.get("summary", ""), *story.get("reflections", [])[:2]] if item]
-    if block == "الدروس الإدارية":
-        applications = story.get("practical_applications", {})
-        return [f"{key}: {value}" for key, value in applications.items() if value and any(word in key + value for word in ["إدار", "عمل", "قياد", "تخطيط"])]
-    if block == "الصبر والمرونة":
-        return [item for item in [story.get("significance", ""), *story.get("reflections", [])] if any(word in item for word in ["صبر", "ثبات", "ابتلاء", "مرونة"])]
-    if block == "نموذج السبب والنتيجة":
-        return [f'{row.get("stage", "")}: {row.get("text", "")}' for row in story.get("transformation_chain", []) if row.get("stage") or row.get("text")]
-    if block == "المهارات المكتسبة":
-        return story.get("skills", [])
-    if block == "نقاط التحول":
-        return story.get("turning_points", [])
-    return []
-
-
-def render_explore_screen(index: list[dict[str, Any]]) -> None:
-    selected_id = st.session_state.selected_story_id
-    if not selected_id:
-        render_empty_state("اختر قصة أولاً لاستكشاف قيمها ودروسها", "عد إلى الصفحة الرئيسية واختر قصة واحدة")
-        return
-    story = load_story_content_cached(selected_id)
-    if not story:
-        render_empty_state("تعذر تحميل محتوى هذه القصة حالياً", "اختر قصة أخرى أو عد إلى الصفحة الرئيسية")
-        return
-    render_story_selector(story, index, "explore_changer", "explore")
     st.markdown(
         f"""
-<section class="explore-banner">
-  <div>
+<section class="explore-shell">
+  <section class="explore-header">
     <h1>استكشف: قصة {esc(story["title"])}</h1>
-    <p>{esc(story.get("core_value", ""))} | {esc(story.get("category", ""))}</p>
-  </div>
-  <div class="lantern-art" aria-hidden="true"></div>
+    <p>{esc(story.get("core_value"))} | {esc(story.get("category"))}</p>
+    <p>{esc(story.get("subtitle"))}</p>
+  </section>
+  <section class="explore-grid">{"".join(cards)}</section>
 </section>
 """,
         unsafe_allow_html=True,
     )
-    st.markdown('<section class="explore-grid">', unsafe_allow_html=True)
-    for block in EXPLORE_BLOCKS:
-        items = block_items(story, block)
-        body = " | ".join(items[:3]) if items else EMPTY_BLOCK
-        st.markdown(f'<article class="explore-card"><span>✦</span><h3>{esc(block)}</h3><p>{esc(body)}</p></article>', unsafe_allow_html=True)
-    st.markdown("</section>", unsafe_allow_html=True)
+    render_related(index, story)
 
-    related = load_related_cached(selected_id)[:3]
-    if related:
-        st.markdown('<h2 class="section-title">قصص ذات صلة</h2>', unsafe_allow_html=True)
-        cols = st.columns(3)
-        for col, item in zip(cols, related):
-            with col:
-                st.markdown(
-                    f"""
-<article class="story-card related-card">
-  <div class="story-art {story_art_class(item)}"><span class="story-badge">{int(item["number"]):02d}</span></div>
-  <h3>{esc(item["title"])}</h3>
-  <p>{esc(item.get("core_value", ""))} | {esc(item.get("category", ""))}</p>
-</article>
+
+def explore_content(story: dict[str, Any], block: str) -> str:
+    overview = " | ".join(clean(row.get("value")) for row in story.get("overview", [])[:3] if clean(row.get("value")))
+    if block == "القيم الأساسية":
+        return " | ".join(v for v in [story.get("core_value"), story.get("category"), story.get("significance")] if clean(v))
+    if block == "التحليل النفسي":
+        return overview or " | ".join(story.get("reflections", [])[:2])
+    if block in {"الدروس القيادية", "الدروس الأخلاقية", "الدروس الإدارية", "الصبر والمرونة"}:
+        return overview or clean(story.get("summary"))
+    if block == "نموذج السبب والنتيجة":
+        return " ← ".join(clean(item.get("stage")) for item in story.get("transformation_chain", []) if clean(item.get("stage")))
+    if block == "المهارات المكتسبة":
+        return "، ".join(story.get("skills", []))
+    if block == "نقاط التحول":
+        return "، ".join(story.get("turning_points", [])[:6])
+    return ""
+
+
+def render_related(index: list[dict[str, Any]], story: dict[str, Any]) -> None:
+    related = [
+        item
+        for item in index
+        if item["id"] != story["id"] and (item.get("category") == story.get("category") or item.get("core_value") == story.get("core_value"))
+    ][:3]
+    if not related:
+        return
+    st.markdown('<h2 class="section-title">قصص ذات صلة</h2>', unsafe_allow_html=True)
+    cols = st.columns(len(related))
+    for col, item in zip(cols, related):
+        with col:
+            st.markdown(
+                f"""
+<section class="related-card">
+  <strong>{int(item["number"]):02d} - {esc(item["title"])}</strong>
+  <p>{esc(item.get("core_value"))} | {esc(item.get("category"))}</p>
+  <small>تشترك مع القصة المختارة في القيمة أو التصنيف.</small>
+</section>
 """,
-                    unsafe_allow_html=True,
-                )
-                if st.button("فتح القصة", key=f"related_{item['id']}"):
-                    select_story(item["id"], "story")
+                unsafe_allow_html=True,
+            )
+            if st.button("فتح القصة", key=f"related_{item['id']}"):
+                select_story(item["id"], "story")
 
 
 def main() -> None:
-    initialize_state()
-    st.markdown(build_css(st.session_state.theme), unsafe_allow_html=True)
-    render_navigation()
-    index = load_story_index_cached()
-
-    if st.session_state.current_view == "home":
+    index = load_excel_catalog()
+    initialize_state(index)
+    st.markdown(build_css("light"), unsafe_allow_html=True)
+    render_nav()
+    if st.session_state.active_view == "home":
         render_home(index)
-    elif st.session_state.current_view == "story":
-        render_story_screen(index)
-    elif st.session_state.current_view == "explore":
-        render_explore_screen(index)
-    else:
-        st.session_state.current_view = "home"
-        st.rerun()
+    elif st.session_state.active_view == "story":
+        render_story_view(index)
+    elif st.session_state.active_view == "explore":
+        render_explore_view(index)
 
 
 if __name__ == "__main__":
