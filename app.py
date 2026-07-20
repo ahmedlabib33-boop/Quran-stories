@@ -72,7 +72,7 @@ EMPTY_BLOCK = "لا توجد عناصر مسجلة لهذا الجانب في ا
 
 
 st.set_page_config(
-    page_title="قصص القرآن",
+    page_title="اِبْتِهَال",
     page_icon="📖",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -282,8 +282,8 @@ def render_landing_slides(index: list[dict[str, Any]]) -> None:
         f"""
 <section class="target-hero home-hero landing-slide">
   <div class="hero-copy">
-    <h1>قصص القرآن</h1>
-    <p>دروس وعبر لحياة أفضل</p>
+    <h1>اِبْتِهَال</h1>
+    <p>قصص تُحيي القلب، وهدايات تصنع الوعي</p>
     <span class='gold-cta ghost-cta'>استكشف القصص</span>
   </div>
   <div class="hero-arch" aria-hidden="true"></div>
