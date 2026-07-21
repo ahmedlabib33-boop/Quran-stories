@@ -51,6 +51,110 @@ DEFAULT_STATE = {
     "skill_filter": "الكل",
 }
 
+CRITICAL_MOBILE_CSS = """
+<style>
+.html-desktop-nav a,
+.html-mobile-nav a {
+  color: inherit;
+  text-decoration: none;
+}
+.html-desktop-nav {
+  position: sticky;
+  top: 10px;
+  z-index: 90;
+  max-width: 760px;
+  margin: -28px auto 20px;
+  padding: 7px;
+  border: 1px solid rgba(216,183,106,.62);
+  border-radius: 999px;
+  background: rgba(7,29,25,.98);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.html-desktop-nav a {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: rgba(247,241,227,.88);
+  font-family: Cairo, sans-serif;
+  font-weight: 900;
+}
+.html-desktop-nav a.active {
+  color: #F7F1E3;
+  background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96));
+  border: 1px solid rgba(216,183,106,.72);
+}
+.html-mobile-nav { display: none; }
+@media (max-width: 1180px) {
+  .html-desktop-nav,
+  .st-key-desktop_nav,
+  .st-key-mobile_nav,
+  .app-top-frame {
+    display: none !important;
+  }
+  .html-mobile-nav {
+    position: fixed !important;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 99999;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 7px;
+    border: 1px solid rgba(198,161,91,.62);
+    border-radius: 24px;
+    background: rgba(7,29,25,.98);
+    box-shadow: 0 14px 34px rgba(7,29,25,.32);
+  }
+  .html-mobile-nav a {
+    min-height: 56px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    color: rgba(247,241,227,.86);
+    font: 900 .78rem Cairo, sans-serif;
+  }
+  .html-mobile-nav a.active {
+    color: #F7F1E3;
+    background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96));
+    border: 1px solid rgba(216,183,106,.72);
+  }
+  .block-container {
+    padding: 6px 12px calc(124px + env(safe-area-inset-bottom)) !important;
+  }
+  .carousel-shell {
+    margin-top: 0 !important;
+  }
+  .brand-slide {
+    height: clamp(178px, 34vh, 218px) !important;
+    min-height: 0 !important;
+    grid-template-columns: 1fr !important;
+    padding: 10px 14px !important;
+  }
+  .stVerticalBlock.st-key-slide_controls,
+  div[data-testid="stVerticalBlock"].st-key-slide_controls {
+    display: grid !important;
+    grid-template-columns: minmax(64px,1fr) 34px 34px 34px minmax(64px,1fr) !important;
+    gap: 5px !important;
+    margin: 6px auto 4px !important;
+    width: 100% !important;
+  }
+  .stVerticalBlock.st-key-slide_controls [data-testid="stElementContainer"],
+  div[data-testid="stVerticalBlock"].st-key-slide_controls [data-testid="stElementContainer"] {
+    width: 100% !important;
+  }
+  .st-key-slide_controls .stButton > button {
+    min-height: 34px !important;
+    padding: 2px 6px !important;
+    font-size: .78rem !important;
+  }
+}
+</style>
+"""
+
 
 st.set_page_config(
     page_title="اِبْتِهَال",
@@ -714,6 +818,7 @@ def main() -> None:
     index = load_excel_catalog()
     initialize_state(index)
     st.markdown(build_css("light"), unsafe_allow_html=True)
+    st.markdown(CRITICAL_MOBILE_CSS, unsafe_allow_html=True)
     render_nav(index)
     if st.session_state.active_view == "home":
         render_home(index)

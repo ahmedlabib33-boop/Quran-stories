@@ -889,7 +889,7 @@ div[data-testid="column"],
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1180px) {
   .block-container {
     max-width: 100%;
     padding: 6px 12px calc(124px + env(safe-area-inset-bottom));
@@ -1242,7 +1242,7 @@ div[data-testid="column"],
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1181px) {
   .st-key-mobile_nav {
     display: none !important;
   }
