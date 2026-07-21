@@ -53,12 +53,7 @@ DEFAULT_STATE = {
 
 CRITICAL_MOBILE_CSS = """
 <style>
-.html-desktop-nav a,
-.html-mobile-nav a {
-  color: inherit;
-  text-decoration: none;
-}
-.html-desktop-nav {
+.st-key-desktop_nav {
   position: sticky;
   top: 10px;
   z-index: 90;
@@ -72,32 +67,35 @@ CRITICAL_MOBILE_CSS = """
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
-.html-desktop-nav a {
+.st-key-desktop_nav .stButton > button {
   min-height: 50px;
-  display: grid;
-  place-items: center;
   border-radius: 999px;
-  color: rgba(247,241,227,.88);
-  font-family: Cairo, sans-serif;
-  font-weight: 900;
+  color: rgba(247,241,227,.88) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  font-family: Cairo, sans-serif !important;
+  font-weight: 900 !important;
 }
-.html-desktop-nav a.active {
-  color: #F7F1E3;
-  background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96));
-  border: 1px solid rgba(216,183,106,.72);
+.st-key-desktop_nav .stButton > button[kind="primary"] {
+  color: #F7F1E3 !important;
+  background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96)) !important;
+  border: 1px solid rgba(216,183,106,.72) !important;
 }
-.html-mobile-nav { display: none; }
+.st-key-mobile_nav { display: none; }
 @media (max-width: 1180px) {
-  .html-desktop-nav,
   .st-key-desktop_nav,
-  .st-key-mobile_nav,
   .app-top-frame {
     display: none !important;
   }
-  .html-mobile-nav {
+  .st-key-mobile_nav {
     position: fixed !important;
     left: 12px;
     right: 12px;
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
     bottom: calc(10px + env(safe-area-inset-bottom));
     z-index: 99999;
     display: grid !important;
@@ -109,18 +107,28 @@ CRITICAL_MOBILE_CSS = """
     background: rgba(7,29,25,.98);
     box-shadow: 0 14px 34px rgba(7,29,25,.32);
   }
-  .html-mobile-nav a {
-    min-height: 56px;
-    display: grid;
-    place-items: center;
-    border-radius: 18px;
-    color: rgba(247,241,227,.86);
-    font: 900 .78rem Cairo, sans-serif;
+  .st-key-mobile_nav > div > [data-testid="stVerticalBlock"] {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    width: 100% !important;
   }
-  .html-mobile-nav a.active {
-    color: #F7F1E3;
-    background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96));
-    border: 1px solid rgba(216,183,106,.72);
+  .st-key-mobile_nav [data-testid="stElementContainer"] {
+    width: 100% !important;
+  }
+  .st-key-mobile_nav .stButton > button {
+    min-height: 56px;
+    border-radius: 18px !important;
+    color: rgba(247,241,227,.86) !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    font: 900 .78rem Cairo, sans-serif !important;
+  }
+  .st-key-mobile_nav .stButton > button[kind="primary"] {
+    color: #F7F1E3 !important;
+    background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96)) !important;
+    border: 1px solid rgba(216,183,106,.72) !important;
   }
   .block-container {
     padding: 6px 12px calc(124px + env(safe-area-inset-bottom)) !important;
@@ -346,11 +354,6 @@ def initialize_state(index: list[dict[str, Any]]) -> None:
     for key, value in DEFAULT_STATE.items():
         if key not in st.session_state:
             st.session_state[key] = value.copy() if isinstance(value, dict) else value
-    query_view = st.query_params.get("view")
-    if isinstance(query_view, list):
-        query_view = query_view[0] if query_view else None
-    if query_view in VIEW_LABELS:
-        st.session_state.active_view = query_view
     if st.session_state.active_view not in VIEW_LABELS:
         st.session_state.active_view = "home"
     if st.session_state.active_story_tab not in STORY_TABS:
@@ -359,7 +362,6 @@ def initialize_state(index: list[dict[str, Any]]) -> None:
 
 def set_view(view: str) -> None:
     st.session_state.active_view = view
-    st.query_params["view"] = view
     st.rerun()
 
 
@@ -395,7 +397,6 @@ def select_story(story_id_value: str, view: str | None = None) -> None:
     set_progress(story_id_value, 10)
     if view:
         st.session_state.active_view = view
-        st.query_params["view"] = view
     st.rerun()
 
 
@@ -430,10 +431,6 @@ def render_nav(index: list[dict[str, Any]]) -> None:
     active_view = st.session_state.active_view
     selected = next((item for item in index if item["id"] == st.session_state.selected_story_id), None)
     selected_title = selected["title"] if selected else "اختر القصة"
-    nav_links = "".join(
-        f'<a class="{"active" if active_view == view else ""}" href="?view={view}">{esc(VIEW_LABELS[view])}</a>'
-        for view in ["home", "story", "explore"]
-    )
     st.markdown(
         f"""
 <header class="app-top-frame view-{active_view}">
@@ -446,10 +443,14 @@ def render_nav(index: list[dict[str, Any]]) -> None:
     </div>
   </div>
 </header>
-<nav class="html-desktop-nav" aria-label="التنقل الرئيسي">{nav_links}</nav>
 """,
         unsafe_allow_html=True,
     )
+    with st.container(key="desktop_nav"):
+        for view in ["home", "story", "explore"]:
+            active = active_view == view
+            if st.button(VIEW_LABELS[view], key=f"nav_desktop_{view}", type="primary" if active else "secondary"):
+                set_view(view)
     if active_view in {"story", "explore"}:
         st.markdown(
             f"""
@@ -461,7 +462,11 @@ def render_nav(index: list[dict[str, Any]]) -> None:
 """,
             unsafe_allow_html=True,
         )
-    st.markdown(f'<nav class="html-mobile-nav" aria-label="تنقل المحمول">{nav_links}</nav>', unsafe_allow_html=True)
+    with st.container(key="mobile_nav"):
+        for view in ["home", "story", "explore"]:
+            active = active_view == view
+            if st.button(VIEW_LABELS[view], key=f"nav_mobile_{view}", type="primary" if active else "secondary"):
+                set_view(view)
 
 
 def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool = False, target_view: str | None = None) -> None:

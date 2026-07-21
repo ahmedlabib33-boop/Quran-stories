@@ -1013,9 +1013,9 @@ div[data-testid="column"],
     position: fixed;
     left: 12px;
     right: 12px;
+    width: calc(100vw - 24px);
     bottom: calc(10px + env(safe-area-inset-bottom));
-    width: auto;
-    max-width: none;
+    max-width: calc(100vw - 24px);
     min-width: 0;
     z-index: 99999;
     display: grid;
