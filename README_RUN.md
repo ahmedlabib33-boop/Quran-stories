@@ -6,13 +6,19 @@
 
 ```powershell
 python -m pip install -r requirements.txt
-python -m streamlit run app.py
+python -m streamlit run app.py --server.port 5619 --server.address 127.0.0.1
 ```
 
 أو شغل مباشرة:
 
 ```powershell
 .\RUN_APP.bat
+```
+
+Local URL:
+
+```text
+http://127.0.0.1:5619/
 ```
 
 ## المحتوى
