@@ -186,7 +186,7 @@ div[data-testid="column"],
     radial-gradient(circle, rgba(216,183,106,.18) 0 38%, transparent 39%);
 }
 
-.st-key-desktop_nav {
+.html-desktop-nav {
   position: sticky;
   top: 10px;
   z-index: 90;
@@ -200,14 +200,33 @@ div[data-testid="column"],
   backdrop-filter: blur(16px);
 }
 
-.st-key-desktop_nav {
+.html-desktop-nav {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
+.html-mobile-nav,
 .st-key-mobile_nav {
   display: none;
+}
+
+.html-desktop-nav a {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: rgba(247,241,227,.86);
+  text-decoration: none;
+  font-family: "Cairo", sans-serif;
+  font-weight: 900;
+}
+
+.html-desktop-nav a.active {
+  color: var(--ivory-100);
+  background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96));
+  border-color: rgba(216,183,106,.72);
 }
 
 .mobile-screen-bar {
@@ -975,7 +994,9 @@ div[data-testid="column"],
     flex-basis: 30px;
   }
 
-  .st-key-desktop_nav {
+  .html-desktop-nav,
+  .st-key-desktop_nav,
+  .st-key-mobile_nav {
     display: none !important;
   }
 
@@ -988,7 +1009,7 @@ div[data-testid="column"],
     overflow: visible !important;
   }
 
-  .st-key-mobile_nav {
+  .html-mobile-nav {
     position: fixed;
     left: 12px;
     right: 12px;
@@ -1009,23 +1030,25 @@ div[data-testid="column"],
     backdrop-filter: blur(16px);
   }
 
-  .st-key-mobile_nav > div > [data-testid="stVerticalBlock"] {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    width: 100%;
-  }
-
-  .st-key-mobile_nav [data-testid="stElementContainer"] {
-    width: 100%;
-  }
-
-  .st-key-mobile_nav .stButton > button {
+  .html-mobile-nav a {
     min-height: 56px;
-    padding: 4px 2px !important;
-    text-align: center !important;
-    font-size: .78rem !important;
-    border-radius: 18px !important;
+    display: grid;
+    place-items: center;
+    padding: 4px 2px;
+    border: 1px solid transparent;
+    border-radius: 18px;
+    color: rgba(247,241,227,.84);
+    text-align: center;
+    text-decoration: none;
+    font-family: "Cairo", sans-serif;
+    font-size: .78rem;
+    font-weight: 900;
+  }
+
+  .html-mobile-nav a.active {
+    color: var(--ivory-100);
+    background: linear-gradient(180deg, rgba(25,78,66,.96), rgba(18,63,53,.96));
+    border-color: rgba(216,183,106,.72);
   }
 
   .brand-slide {

@@ -242,6 +242,11 @@ def initialize_state(index: list[dict[str, Any]]) -> None:
     for key, value in DEFAULT_STATE.items():
         if key not in st.session_state:
             st.session_state[key] = value.copy() if isinstance(value, dict) else value
+    query_view = st.query_params.get("view")
+    if isinstance(query_view, list):
+        query_view = query_view[0] if query_view else None
+    if query_view in VIEW_LABELS:
+        st.session_state.active_view = query_view
     if st.session_state.active_view not in VIEW_LABELS:
         st.session_state.active_view = "home"
     if st.session_state.active_story_tab not in STORY_TABS:
@@ -250,6 +255,7 @@ def initialize_state(index: list[dict[str, Any]]) -> None:
 
 def set_view(view: str) -> None:
     st.session_state.active_view = view
+    st.query_params["view"] = view
     st.rerun()
 
 
@@ -285,6 +291,7 @@ def select_story(story_id_value: str, view: str | None = None) -> None:
     set_progress(story_id_value, 10)
     if view:
         st.session_state.active_view = view
+        st.query_params["view"] = view
     st.rerun()
 
 
@@ -319,6 +326,10 @@ def render_nav(index: list[dict[str, Any]]) -> None:
     active_view = st.session_state.active_view
     selected = next((item for item in index if item["id"] == st.session_state.selected_story_id), None)
     selected_title = selected["title"] if selected else "اختر القصة"
+    nav_links = "".join(
+        f'<a class="{"active" if active_view == view else ""}" href="?view={view}">{esc(VIEW_LABELS[view])}</a>'
+        for view in ["home", "story", "explore"]
+    )
     st.markdown(
         f"""
 <header class="app-top-frame view-{active_view}">
@@ -331,19 +342,10 @@ def render_nav(index: list[dict[str, Any]]) -> None:
     </div>
   </div>
 </header>
+<nav class="html-desktop-nav" aria-label="التنقل الرئيسي">{nav_links}</nav>
 """,
         unsafe_allow_html=True,
     )
-    with st.container(key="desktop_nav"):
-        for view in ["home", "story", "explore"]:
-            active = st.session_state.active_view == view
-            if st.button(VIEW_LABELS[view], key=f"nav_desktop_{view}", type="primary" if active else "secondary"):
-                set_view(view)
-    with st.container(key="mobile_nav"):
-        for view in ["home", "story", "explore"]:
-            active = st.session_state.active_view == view
-            if st.button(VIEW_LABELS[view], key=f"nav_mobile_{view}", type="primary" if active else "secondary"):
-                set_view(view)
     if active_view in {"story", "explore"}:
         st.markdown(
             f"""
@@ -355,6 +357,7 @@ def render_nav(index: list[dict[str, Any]]) -> None:
 """,
             unsafe_allow_html=True,
         )
+    st.markdown(f'<nav class="html-mobile-nav" aria-label="تنقل المحمول">{nav_links}</nav>', unsafe_allow_html=True)
 
 
 def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool = False, target_view: str | None = None) -> None:
