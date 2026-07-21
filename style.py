@@ -873,30 +873,24 @@ div[data-testid="column"],
 @media (max-width: 767px) {
   .block-container {
     max-width: 100%;
-    padding: 8px 12px calc(110px + env(safe-area-inset-bottom));
+    padding: 6px 12px calc(124px + env(safe-area-inset-bottom));
   }
 
   .app-top-frame {
-    min-height: 68px;
-    border-radius: 0 0 20px 20px;
-  }
-
-  .app-top-frame.view-story,
-  .app-top-frame.view-explore {
     display: none;
   }
 
   .mobile-screen-bar {
     position: sticky;
-    top: 8px;
+    top: 6px;
     z-index: 80;
-    min-height: 62px;
+    min-height: 50px;
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) minmax(98px, .65fr);
+    grid-template-columns: 34px minmax(0, 1fr) minmax(78px, .52fr);
     align-items: center;
-    gap: 10px;
-    margin: 0 0 12px;
-    padding: 8px 12px;
+    gap: 7px;
+    margin: -64px 0 8px;
+    padding: 6px 8px;
     border: 1px solid rgba(216,183,106,.62);
     border-bottom: 2px solid var(--gold-500);
     border-radius: 18px;
@@ -917,21 +911,22 @@ div[data-testid="column"],
   }
 
   .mobile-screen-bar h2 {
-    font-size: 1.08rem;
+    font-size: .98rem;
     font-weight: 900;
   }
 
   .mobile-screen-bar div {
     display: grid;
-    gap: 2px;
-    padding: 5px 8px;
+    gap: 1px;
+    padding: 4px 6px;
     border: 1px solid rgba(216,183,106,.46);
     border-radius: 999px;
     background: rgba(7,29,25,.28);
   }
 
   .mobile-screen-bar small {
-    font-size: .58rem;
+    display: none;
+    font-size: .54rem;
     opacity: .75;
   }
 
@@ -940,12 +935,12 @@ div[data-testid="column"],
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: .72rem;
+    font-size: .66rem;
   }
 
   .screen-menu {
-    width: 24px;
-    height: 18px;
+    width: 22px;
+    height: 16px;
     display: inline-block;
     margin-inline: auto;
     border-top: 2px solid var(--gold-400);
@@ -962,12 +957,12 @@ div[data-testid="column"],
   }
 
   .brand-lockup {
-    min-height: 68px;
+    min-height: 56px;
     gap: 10px;
   }
 
   .brand-lockup h1 {
-    font-size: clamp(1.75rem, 8vw, 2.65rem);
+    font-size: clamp(1.55rem, 7vw, 2.15rem);
   }
 
   .brand-lockup p {
@@ -975,13 +970,22 @@ div[data-testid="column"],
   }
 
   .brand-mark {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
   }
 
   .st-key-desktop_nav {
     display: none !important;
+  }
+
+  div[data-testid="stElementContainer"]:has(.st-key-desktop_nav),
+  div[data-testid="stElementContainer"]:has(.st-key-mobile_nav) {
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
   }
 
   .st-key-mobile_nav {
@@ -1026,19 +1030,28 @@ div[data-testid="column"],
 
   .brand-slide {
     grid-template-columns: 1fr;
-    min-height: 232px;
-    padding: 16px 16px;
+    min-height: 0;
+    height: clamp(178px, 34vh, 218px);
+    padding: 10px 14px;
+    gap: 6px;
+  }
+
+  .carousel-shell {
+    margin-top: -64px;
   }
 
   .brand-slide h1 {
     text-align: center;
-    font-size: clamp(1.75rem, 8vw, 2.65rem);
+    font-size: clamp(1.42rem, 7vw, 1.95rem);
+    margin-bottom: 2px;
   }
 
   .brand-slide p {
     text-align: center;
     margin-inline: auto;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
+    font-size: .78rem;
+    line-height: 1.42;
   }
 
   .brand-emblem,
@@ -1049,7 +1062,32 @@ div[data-testid="column"],
   .andalusian-arch,
   .lantern-panel,
   .star-panel {
-    min-height: 62px;
+    min-height: 34px;
+    max-height: 42px;
+  }
+
+  .gold-cta {
+    min-height: 34px;
+    padding: 5px 18px;
+    font-size: .82rem;
+  }
+
+  .stVerticalBlock.st-key-slide_controls,
+  div[data-testid="stVerticalBlock"].st-key-slide_controls {
+    margin: 6px auto 4px !important;
+    gap: 5px !important;
+    grid-template-columns: minmax(64px, 1fr) 34px 34px 34px minmax(64px, 1fr) !important;
+  }
+
+  .st-key-slide_controls .stButton > button {
+    min-height: 34px;
+    padding: 2px 6px !important;
+    font-size: .78rem !important;
+  }
+
+  .control-panel {
+    margin: 6px 0 4px;
+    padding: 8px;
   }
 
   .indicator-cloud {
@@ -1063,11 +1101,54 @@ div[data-testid="column"],
   }
 
   .story-header {
-    gap: 14px;
+    gap: 8px;
+    padding: 10px;
+    margin: 8px 0 10px;
   }
 
   .story-visual {
-    min-height: 142px;
+    display: none;
+  }
+
+  .story-visual span {
+    width: 38px;
+    height: 38px;
+    top: 10px;
+    left: 10px;
+    border-radius: 14px;
+  }
+
+  .story-medallion {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto 4px;
+    border-radius: 12px;
+    font-size: .9rem;
+  }
+
+  .story-header h1 {
+    font-size: clamp(1.42rem, 7vw, 1.9rem);
+    margin-bottom: 2px;
+  }
+
+  .story-header p {
+    font-size: .82rem;
+    line-height: 1.35;
+    margin: 2px 0;
+  }
+
+  .story-header .refs {
+    display: none;
+  }
+
+  .story-header .meta-row span {
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: .72rem;
+  }
+
+  .progress-ring {
+    display: none;
   }
 
   .progress-ring {
@@ -1091,15 +1172,39 @@ div[data-testid="column"],
     min-width: 720px;
   }
 
+  .stVerticalBlock.st-key-story_tabs,
+  div[data-testid="stVerticalBlock"].st-key-story_tabs {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 4px 0 6px !important;
+  }
+
+  .stVerticalBlock.st-key-story_tabs [data-testid="stHorizontalBlock"],
+  div[data-testid="stVerticalBlock"].st-key-story_tabs [data-testid="stHorizontalBlock"] {
+    display: grid !important;
+    grid-template-columns: repeat(5, 116px) !important;
+    grid-auto-flow: column !important;
+    gap: 6px !important;
+    width: max-content !important;
+    min-width: max-content !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .stVerticalBlock.st-key-story_tabs [data-testid="column"],
+  div[data-testid="stVerticalBlock"].st-key-story_tabs [data-testid="column"] {
+    width: 116px !important;
+    min-width: 116px !important;
+    flex: 0 0 116px !important;
+  }
+
   .st-key-story_prev_next > div > [data-testid="stVerticalBlock"],
   .explore-grid,
   .transformation-flow,
   .applications-grid {
     grid-template-columns: 1fr;
-  }
-
-  [data-testid="stHorizontalBlock"] {
-    flex-wrap: wrap;
   }
 
   .quran-text {

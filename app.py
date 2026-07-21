@@ -357,7 +357,7 @@ def render_nav(index: list[dict[str, Any]]) -> None:
         )
 
 
-def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool = False) -> None:
+def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool = False, target_view: str | None = None) -> None:
     ids = story_options(index) if filtered else [item["id"] for item in index]
     if not ids:
         st.warning("لا توجد قصص مطابقة لمعايير البحث الحالية")
@@ -373,17 +373,14 @@ def render_story_selector(index: list[dict[str, Any]], key: str, filtered: bool 
         placeholder="اختر القصة",
     )
     if selected and selected != st.session_state.selected_story_id:
-        select_story(selected)
+        select_story(selected, target_view)
 
 
 def render_home(index: list[dict[str, Any]]) -> None:
     render_home_carousel(index)
     st.markdown('<section class="control-panel">', unsafe_allow_html=True)
-    render_story_selector(index, "home_story_selector", filtered=False)
+    render_story_selector(index, "home_story_selector", filtered=False, target_view="story")
     st.markdown("</section>", unsafe_allow_html=True)
-    story = get_story(index, st.session_state.selected_story_id)
-    if story:
-        render_preview_card(story)
 
 
 def render_home_carousel(index: list[dict[str, Any]]) -> None:
@@ -483,8 +480,8 @@ def render_story_view(index: list[dict[str, Any]]) -> None:
     set_progress(story["id"], 10)
     render_story_selector(index, "global_story_selector_story")
     render_story_header(story)
-    render_previous_next(index, story)
     render_story_tabs(story)
+    render_previous_next(index, story)
 
 
 def render_story_header(story: dict[str, Any]) -> None:
